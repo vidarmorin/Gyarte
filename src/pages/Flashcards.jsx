@@ -22,8 +22,9 @@ export default function Flashcards({ onClose }) {
   const [aiResponse, setAiResponse] = useState('')
   const [quizLoading, setQuizLoading] = useState(false)
   const [quizSentence, setQuizSentence] = useState('')
-  const [correctWord, setCorrectWord] = useState('')
-  const [userAnswer, setUserAnswer] = useState('')
+  const [quizOptions, setQuizOptions] = useState([])
+  const [correctIndex, setCorrectIndex] = useState(-1)
+  const [quizTranslation, setQuizTranslation] = useState('')
   const [quizFeedback, setQuizFeedback] = useState('')
 
   useEffect(() => {
@@ -180,9 +181,10 @@ export default function Flashcards({ onClose }) {
 
     setQuizLoading(true)
     setQuizFeedback('')
-    setUserAnswer('')
     setQuizSentence('')
-    setCorrectWord('')
+    setQuizOptions([])
+    setCorrectIndex(-1)
+    setQuizTranslation('')
 
     try {
       // Pick a random card and use the BACK (answer/Latin word) field
@@ -200,19 +202,22 @@ export default function Flashcards({ onClose }) {
         messages: [
           {
             role: 'user',
-            content: `IMPORTANT: You are creating a Latin quiz. Follow these STRICT rules:
-1. Create ONLY ONE complete Latin sentence
+            content: `IMPORTANT: You are creating a Latin multiple-choice quiz. Follow these STRICT rules:
+1. Create ONLY ONE complete Latin sentence with a blank
 2. The sentence MUST use the EXACT Latin word "${word}" - do NOT use related forms, synonyms, or different conjugations
 3. This word comes from a Latin flashcard vocabulary list and must be used exactly as written
 4. The word MUST appear exactly ONCE in the sentence
 5. Replace ONLY "${word}" with _____ (five underscores)
 6. Do NOT translate or use any non-Latin words
-7. Output format: [sentence with _____] | [complete sentence with ${word}]
-8. There MUST be exactly one | separator
+7. Generate TWO incorrect Latin sentences that are similar but wrong (e.g., wrong word choice, conjugation, or structure)
+8. Provide an ENGLISH translation of the correct full Latin sentence
+9. Output format: [sentence with _____] | [correct full sentence] | [incorrect option 1] | [incorrect option 2] | [English translation]
+10. There MUST be exactly four | separators (five parts total)
+11. All Latin options must be complete Latin sentences
 
 The LATIN word from flashcards to use: "${word}"
 
-Create the sentence now. Remember: use the exact word "${word}" as given, keep it in Latin, replace only that word with _____.`,
+Create the quiz now. Remember: use the exact word "${word}" as given, keep everything in Latin except the final English translation.`,
           },
         ],
       })
@@ -220,21 +225,26 @@ Create the sentence now. Remember: use the exact word "${word}" as given, keep i
       const aiText = response.choices?.[0]?.message?.content || ''
       const parts = aiText.split('|').map(p => p.trim())
       
-      if (parts.length >= 2) {
+      if (parts.length >= 5) {
         const sentence = parts[0].trim()
-        const fullSentence = parts[1].trim()
+        const correct = parts[1].trim()
+        const incorrect1 = parts[2].trim()
+        const incorrect2 = parts[3].trim()
+        const englishTranslation = parts[4].trim()
         
         // Verify that there's actually a blank in the sentence
-        if (sentence.includes('_____')) {
-          // Verify the complete sentence contains the exact word
-          if (fullSentence.includes(word)) {
-            setQuizSentence(sentence)
-            setCorrectWord(fullSentence)
-          } else {
-            setQuizFeedback('Error: Generated sentence does not contain the exact word. Please try again.')
-          }
+        if (sentence.includes('_____') && correct.includes(word)) {
+          // Create options array and shuffle
+          const options = [correct, incorrect1, incorrect2]
+          const shuffled = options.sort(() => Math.random() - 0.5)
+          const correctIdx = shuffled.indexOf(correct)
+          
+          setQuizSentence(sentence)
+          setQuizOptions(shuffled)
+          setCorrectIndex(correctIdx)
+          setQuizTranslation(englishTranslation)
         } else {
-          setQuizFeedback('Error: Generated sentence missing blank. Please try again.')
+          setQuizFeedback('Error: Generated quiz is invalid. Please try again.')
         }
       } else {
         setQuizFeedback('Error generating quiz. Please try again.')
@@ -246,26 +256,11 @@ Create the sentence now. Remember: use the exact word "${word}" as given, keep i
     }
   }
 
-  const checkQuiz = () => {
-    if (!correctWord) return
-    
-    // Normalize both answers: lowercase, trim whitespace, remove extra spaces
-    const normalizedAnswer = userAnswer.toLowerCase().trim().replace(/\s+/g, ' ')
-    const normalizedCorrect = correctWord.toLowerCase().trim().replace(/\s+/g, ' ')
-    
-    // Check if they match
-    if (normalizedAnswer === normalizedCorrect) {
-      setQuizFeedback('Correct!')
+  const checkQuizOption = (selectedIndex) => {
+    if (selectedIndex === correctIndex) {
+      setQuizFeedback(`Correct! Translation: ${quizTranslation}`)
     } else {
-      // Also try checking if the answer contains all the same words (in case of minor word order differences)
-      const answerWords = normalizedAnswer.split(/\s+/).sort().join(' ')
-      const correctWords = normalizedCorrect.split(/\s+/).sort().join(' ')
-      
-      if (answerWords === correctWords) {
-        setQuizFeedback('Correct!')
-      } else {
-        setQuizFeedback(`Wrong. The correct answer is: ${correctWord}`)
-      }
+      setQuizFeedback(`Wrong. The correct answer is: ${quizOptions[correctIndex]}`)
     }
   }
 
@@ -379,19 +374,29 @@ Create the sentence now. Remember: use the exact word "${word}" as given, keep i
             <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f0f8ff', border: '1px solid #2b6cff', borderRadius: 4 }}>
               <label className="label">Complete the sentence in Latin:</label>
               <p style={{ fontSize: 16, marginBottom: 12, marginTop: 8 }}>{quizSentence}</p>
-              <input
-                type="text"
-                placeholder="Type the complete Latin sentence (uppercase/lowercase doesn't matter)"
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && checkQuiz()}
-                style={{ width: '100%', padding: 8, fontSize: 14, marginBottom: 8, border: '1px solid #ddd', borderRadius: 4 }}
-              />
-              <button onClick={checkQuiz} style={{ width: '100%', padding: 8, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
-                Check Answer
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {quizOptions.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => checkQuizOption(index)}
+                    style={{
+                      padding: 10,
+                      backgroundColor: '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      textAlign: 'left',
+                      whiteSpace: 'pre-wrap'
+                    }}
+                    disabled={quizFeedback !== ''}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
               {quizFeedback && (
-                <div style={{ marginTop: 12, fontSize: 16, fontWeight: 'bold', color: quizFeedback === 'Correct!' ? 'green' : '#c33' }}>
+                <div style={{ marginTop: 12, fontSize: 16, fontWeight: 'bold', color: quizFeedback.startsWith('Correct!') ? 'green' : '#c33' }}>
                   {quizFeedback}
                 </div>
               )}
