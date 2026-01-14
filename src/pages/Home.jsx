@@ -19,7 +19,7 @@ export default function Home({ onNavigate }) {
         <nav className="nav">
           <ul>
             <li><a href="#home" onClick={(e) => { e.preventDefault(); window.scrollTo(0, 0); }}>Home</a></li>
-            <li><a href="#about">About</a></li>
+            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
           </ul>
         </nav>

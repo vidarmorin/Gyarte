@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import OpenAI from 'openai'
 import './Flashcards.css'
 
-export default function Flashcards({ onClose }) {
+export default function Flashcards({ onClose, onNavigate }) {
   const [cards, setCards] = useState([])
   const [idx, setIdx] = useState(0)
   const [showingPrimary, setShowingPrimary] = useState(true)
@@ -276,7 +276,7 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
         <nav className="nav">
           <ul>
             <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
-            <li><a href="#about">About</a></li>
+            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
             <li><a href="#flashcards">Flashcards</a></li>
           </ul>
         </nav>
