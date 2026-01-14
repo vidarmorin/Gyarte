@@ -3,15 +3,15 @@ import { supabase } from '../lib/supabaseClient'
 import OpenAI from 'openai'
 import './Flashcards.css'
 
-export default function FillInTheBlank({ onClose, onNavigate }) {
+export default function Chat({ onClose, onNavigate }) {
   const [cards, setCards] = useState([])
+  const [userEmail, setUserEmail] = useState('')
   const [quizLoading, setQuizLoading] = useState(false)
   const [quizSentence, setQuizSentence] = useState('')
   const [quizOptions, setQuizOptions] = useState([])
   const [correctIndex, setCorrectIndex] = useState(-1)
   const [quizTranslation, setQuizTranslation] = useState('')
   const [quizFeedback, setQuizFeedback] = useState('')
-  const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
     // fetch session to display user email
@@ -27,13 +27,19 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
         .select('id, front, back')
         .order('id', { ascending: true })
       if (error) throw error
-      setCards((data || []).map((c) => ({ id: c.id, front: c.front, back: c.back })))
+      const mapped = (data || []).map((c) => ({ id: c.id, front: c.front, back: c.back }))
+      setCards(mapped)
     } catch (err) {
       console.error(err)
     }
   }
 
   const generateQuiz = async () => {
+    if (!cards.length) {
+      setQuizFeedback('No flashcards available. Please fetch cards first.')
+      return
+    }
+
     setQuizLoading(true)
     setQuizFeedback('')
     setQuizSentence('')
@@ -42,36 +48,9 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
     setQuizTranslation('')
 
     try {
-      // Fetch cards
-      const { data, error } = await supabase
-        .from('flashcards')
-        .select('id, front, back')
-        .order('id', { ascending: true })
-      if (error) throw error
-      const fetchedCards = (data || []).map((c) => ({ id: c.id, front: c.front, back: c.back }))
-      setCards(fetchedCards)
-      console.log('Fetched cards:', fetchedCards.length)
-
-      if (!fetchedCards.length) {
-        setQuizFeedback('No flashcards available. Please add cards first.')
-        setQuizLoading(false)
-        return
-      }
-
       // Pick a random card and use the BACK (answer/Latin word) field
-      const randomCard = fetchedCards[Math.floor(Math.random() * fetchedCards.length)]
+      const randomCard = cards[Math.floor(Math.random() * cards.length)]
       const word = randomCard.back // Use the back field - the Latin word/definition
-
-      // Get two other random words from different cards
-      const otherCards = fetchedCards.filter(c => c.id !== randomCard.id)
-      if (otherCards.length < 2) {
-        setQuizFeedback('Need at least 3 flashcards for quiz.')
-        setQuizLoading(false)
-        return
-      }
-      const shuffledOthers = otherCards.sort(() => Math.random() - 0.5)
-      const incorrect1 = shuffledOthers[0]
-      const incorrect2 = shuffledOthers[1]
 
       const client = new OpenAI({
         apiKey: 'ollama',
@@ -84,45 +63,43 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
         messages: [
           {
             role: 'user',
-            content: `You are creating a Latin vocabulary quiz. Use the exact Latin word "${word}" from the flashcards.
+            content: `IMPORTANT: You are creating a Latin multiple-choice quiz. Follow these STRICT rules:
+1. Create ONLY ONE complete Latin sentence with a blank
+2. The sentence MUST use the EXACT Latin word "${word}" - do NOT use related forms, synonyms, or different conjugations
+3. This word comes from a Latin flashcard vocabulary list and must be used exactly as written
+4. The word MUST appear exactly ONCE in the sentence
+5. Replace ONLY "${word}" with _____ (five underscores)
+6. Do NOT translate or use any non-Latin words
+7. Generate TWO incorrect Latin sentences that are similar but wrong (e.g., wrong word choice, conjugation, or structure)
+8. Provide an ENGLISH translation of the correct full Latin sentence
+9. Output format: [sentence with _____] | [correct full sentence] | [incorrect option 1] | [incorrect option 2] | [English translation]
+10. There MUST be exactly four | separators (five parts total)
+11. All Latin options must be complete Latin sentences
 
-STRICT INSTRUCTIONS:
-1. Create exactly ONE Latin sentence that naturally includes the word "${word}".
-2. Replace ONLY the word "${word}" with _____ (five underscores) in the sentence.
-3. The sentence must be grammatically correct Latin.
-4. Provide the English translation of the full correct sentence (with "${word}" included).
+The LATIN word from flashcards to use: "${word}"
 
-Output ONLY in this exact format with no extra text:
-[sentence with _____] | [English translation]
-
-Example for word "puer":
-[_____ amat matrem.] | [The boy loves his mother.]
-
-Now create for the word "${word}":`,
+Create the quiz now. Remember: use the exact word "${word}" as given, keep everything in Latin except the final English translation.`,
           },
         ],
       })
 
       const aiText = response.choices?.[0]?.message?.content || ''
-      console.log('AI response:', aiText)
       const parts = aiText.split('|').map(p => p.trim())
-
-      if (parts.length >= 2) {
-        const sentence = parts[0].trim()
-        const englishTranslation = parts[1].trim()
-        console.log('Parsed sentence:', sentence, 'Translation:', englishTranslation)
-
+      
+      if (parts.length >= 5) {
+        const sentence = parts[0].trim().toLowerCase()
+        const correct = parts[1].trim().toLowerCase()
+        const incorrect1 = parts[2].trim().toLowerCase()
+        const incorrect2 = parts[3].trim().toLowerCase()
+        const englishTranslation = parts[4].trim()
+        
         // Verify that there's actually a blank in the sentence
-        if (sentence.includes('_____')) {
-          // Create options array: correct word and two incorrect from other cards
-          const options = [
-            { word: word, translation: randomCard.front },
-            { word: incorrect1.back, translation: incorrect1.front },
-            { word: incorrect2.back, translation: incorrect2.front }
-          ]
+        if (sentence.includes('_____') && correct.toLowerCase().includes(word.toLowerCase())) {
+          // Create options array and shuffle
+          const options = [correct, incorrect1, incorrect2]
           const shuffled = options.sort(() => Math.random() - 0.5)
-          const correctIdx = shuffled.findIndex(opt => opt.word === word)
-
+          const correctIdx = shuffled.indexOf(correct)
+          
           setQuizSentence(sentence)
           setQuizOptions(shuffled)
           setCorrectIndex(correctIdx)
@@ -144,7 +121,7 @@ Now create for the word "${word}":`,
     if (selectedIndex === correctIndex) {
       setQuizFeedback(`Correct! Translation: ${quizTranslation}`)
     } else {
-      setQuizFeedback(`Wrong. The correct answer is: ${quizOptions[correctIndex].word}. Translation: ${quizTranslation}`)
+      setQuizFeedback(`Wrong. The correct answer is: ${quizOptions[correctIndex]}`)
     }
   }
 
@@ -152,7 +129,7 @@ Now create for the word "${word}":`,
     <div className="flashcards-page page">
       <header className="header">
         <div className="header-top">
-          <h1>Fill in the Blank Quiz</h1>
+          <h1>Chat</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="logout-button" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>Logout</button>
           </div>
@@ -160,9 +137,9 @@ Now create for the word "${word}":`,
         <nav className="nav">
           <ul>
             <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
+            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
-            <li><a href="#fillintheblank">Fill in the Blank</a></li>
-            <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Chat</a></li>
+            <li><a href="#chat">Chat</a></li>
             <li><a href="#test" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Test</a></li>
           </ul>
         </nav>
@@ -170,23 +147,23 @@ Now create for the word "${word}":`,
 
       <main className="container">
         <div style={{ textAlign: 'center', marginTop: 40 }}>
-          <button onClick={generateQuiz} disabled={quizLoading} style={{ width: '200px', padding: 10, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
+          <button onClick={fetchCards} style={{ width: '200px', padding: 10, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500, marginRight: 10 }}>
+            Fetch Cards
+          </button>
+          <button onClick={generateQuiz} disabled={quizLoading || !cards.length} style={{ width: '200px', padding: 10, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
             {quizLoading ? 'Generating Quiz…' : 'Generate Quiz'}
           </button>
         </div>
 
         {quizSentence && (
           <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f0f8ff', border: '1px solid #2b6cff', borderRadius: 4, maxWidth: 600, margin: '20px auto' }}>
-            <label className="label">Choose the correct Latin word to fill the blank:</label>
+            <label className="label">Complete the sentence in Latin:</label>
             <p style={{ fontSize: 16, marginBottom: 12, marginTop: 8 }}>{quizSentence}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {quizOptions.map((option, index) => (
                 <button
                   key={index}
-                  onClick={() => {
-                    alert(`Translation: ${option.translation}`)
-                    checkQuizOption(index)
-                  }}
+                  onClick={() => checkQuizOption(index)}
                   style={{
                     padding: 10,
                     backgroundColor: '#fff',
@@ -199,7 +176,7 @@ Now create for the word "${word}":`,
                   }}
                   disabled={quizFeedback !== ''}
                 >
-                  {option.word}
+                  {option}
                 </button>
               ))}
             </div>
@@ -213,31 +190,7 @@ Now create for the word "${word}":`,
 
         {!cards.length && (
           <div style={{ textAlign: 'center', marginTop: 20 }}>
-            <p>No flashcards available. Please add some flashcards first.</p>
-          </div>
-        )}
-
-        {cards.length > 0 && (
-          <div style={{ marginTop: 40, padding: 12, backgroundColor: '#f9f9f9', border: '1px solid #ddd', borderRadius: 4 }}>
-            <h3 style={{ marginBottom: 12 }}>Vocabulary Reference</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {cards.map((card, index) => (
-                <button
-                  key={card.id ?? `card-${index}`}
-                  onClick={() => alert(`Translation: ${card.front}`)}
-                  style={{
-                    padding: '8px 12px',
-                    backgroundColor: '#e0e0e0',
-                    border: '1px solid #ccc',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 14
-                  }}
-                >
-                  {card.back}
-                </button>
-              ))}
-            </div>
+            <p>No flashcards available. Please fetch cards first.</p>
           </div>
         )}
       </main>

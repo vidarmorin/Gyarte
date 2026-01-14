@@ -3,6 +3,8 @@ import Home from './pages/Home'
 import Auth from './pages/Auth'
 import Flashcards from './pages/Flashcards'
 import FillInTheBlank from './pages/FillInTheBlank'
+import Chat from './pages/chat'
+import Test from './pages/Test'
 import { supabase } from './lib/supabaseClient'
 import './App.css'
 
@@ -40,6 +42,10 @@ function App() {
         <Flashcards onClose={() => setRoute('home')} onNavigate={(r) => setRoute(r)} />
       ) : route === 'fillintheblank' ? (
         <FillInTheBlank onClose={() => setRoute('home')} onNavigate={(r) => setRoute(r)} />
+      ) : route === 'chat' ? (
+        <Chat onClose={() => setRoute('home')} onNavigate={(r) => setRoute(r)} />
+      ) : route === 'test' ? (
+        <Test onClose={() => setRoute('home')} onNavigate={(r) => setRoute(r)} />
       ) : (
         <Home onNavigate={(r) => setRoute(r)} />
       )}

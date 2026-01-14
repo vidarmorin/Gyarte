@@ -26,6 +26,9 @@ export default function Flashcards({ onClose, onNavigate }) {
   const [correctIndex, setCorrectIndex] = useState(-1)
   const [quizTranslation, setQuizTranslation] = useState('')
   const [quizFeedback, setQuizFeedback] = useState('')
+  const [languages, setLanguages] = useState([])
+  const [selectedLanguage, setSelectedLanguage] = useState('')
+  const [languagesFetched, setLanguagesFetched] = useState(false)
 
   useEffect(() => {
     // fetch session to display user email
@@ -39,11 +42,39 @@ export default function Flashcards({ onClose, onNavigate }) {
     setError('')
     try {
       const { data, error } = await supabase
-        .from('flashcards')
-        .select('id, front, back')
-        .order('id', { ascending: true })
+        .from('NyFlashcard')
+        .select('Language')
       if (error) throw error
-      const mapped = (data || []).map((c) => ({ id: c.id, front: c.front, back: c.back }))
+      const allLanguages = (data || []).map(item => item.Language).filter(Boolean)
+      console.log('All languages in NyFlashcard table:', allLanguages)
+      const uniqueLanguages = [...new Set(allLanguages)]
+      setLanguages(uniqueLanguages)
+      setLanguagesFetched(true)
+    } catch (err) {
+      setError(err.message || String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadLanguageCards = async (language) => {
+    if (!language) return
+    setLoading(true)
+    setError('')
+    try {
+      const { data, error } = await supabase
+        .from('NyFlashcard')
+        .select('data')
+        .eq('Language', language)
+        .single()
+      if (error) throw error
+      
+      const dict = JSON.parse(data.data)
+      const mapped = Object.entries(dict).map(([word, translation], index) => ({
+        id: index + 1,
+        front: translation,
+        back: word
+      }))
       setCards(mapped)
       setIdx(0)
       setShowingPrimary(true)
@@ -56,14 +87,33 @@ export default function Flashcards({ onClose, onNavigate }) {
 
   const handleAdd = async () => {
     setError('')
+    if (!selectedLanguage) return setError('Please select a language first.')
     if (!front.trim() || !back.trim()) return setError('Enter both front and back.')
     setLoading(true)
     try {
-      const { error } = await supabase.from('flashcards').insert([{ front: front.trim(), back: back.trim() }])
-      if (error) throw error
+      // Fetch current data
+      const { data: currentData, error: fetchError } = await supabase
+        .from('NyFlashcard')
+        .select('data')
+        .eq('Language', selectedLanguage)
+        .single()
+      if (fetchError) throw fetchError
+
+      const dict = JSON.parse(currentData.data)
+      // Add new entry: back (word) : front (translation)
+      dict[back.trim()] = front.trim()
+
+      // Update the row
+      const { error: updateError } = await supabase
+        .from('NyFlashcard')
+        .update({ data: JSON.stringify(dict) })
+        .eq('Language', selectedLanguage)
+      if (updateError) throw updateError
+
       setFront('')
       setBack('')
-      await fetchAndShow()
+      // Reload the cards
+      await loadLanguageCards(selectedLanguage)
     } catch (err) {
       setError(err.message || String(err))
     } finally {
@@ -174,8 +224,12 @@ export default function Flashcards({ onClose, onNavigate }) {
   }
 
   const generateQuiz = async () => {
+    if (!selectedLanguage) {
+      setQuizFeedback('Please select a language first.')
+      return
+    }
     if (!cards.length) {
-      setQuizFeedback('No flashcards available. Please fetch cards first.')
+      setQuizFeedback('No flashcards available for this language.')
       return
     }
 
@@ -187,9 +241,9 @@ export default function Flashcards({ onClose, onNavigate }) {
     setQuizTranslation('')
 
     try {
-      // Pick a random card and use the BACK (answer/Latin word) field
+      // Pick a random card and use the BACK (answer/word) field
       const randomCard = cards[Math.floor(Math.random() * cards.length)]
-      const word = randomCard.back // Use the back field - the Latin word/definition
+      const word = randomCard.back // Use the back field - the word
 
       const client = new OpenAI({
         apiKey: 'ollama',
@@ -202,22 +256,22 @@ export default function Flashcards({ onClose, onNavigate }) {
         messages: [
           {
             role: 'user',
-            content: `IMPORTANT: You are creating a Latin multiple-choice quiz. Follow these STRICT rules:
-1. Create ONLY ONE complete Latin sentence with a blank
-2. The sentence MUST use the EXACT Latin word "${word}" - do NOT use related forms, synonyms, or different conjugations
-3. This word comes from a Latin flashcard vocabulary list and must be used exactly as written
+            content: `IMPORTANT: You are creating a ${selectedLanguage} multiple-choice quiz. Follow these STRICT rules:
+1. Create ONLY ONE complete ${selectedLanguage} sentence with a blank
+2. The sentence MUST use the EXACT ${selectedLanguage} word "${word}" - do NOT use related forms, synonyms, or different conjugations
+3. This word comes from a ${selectedLanguage} flashcard vocabulary list and must be used exactly as written
 4. The word MUST appear exactly ONCE in the sentence
 5. Replace ONLY "${word}" with _____ (five underscores)
-6. Do NOT translate or use any non-Latin words
-7. Generate TWO incorrect Latin sentences that are similar but wrong (e.g., wrong word choice, conjugation, or structure)
-8. Provide an ENGLISH translation of the correct full Latin sentence
+6. Do NOT translate or use any non-${selectedLanguage} words
+7. Generate TWO incorrect ${selectedLanguage} sentences that are similar but wrong (e.g., wrong word choice, conjugation, or structure)
+8. Provide an ENGLISH translation of the correct full ${selectedLanguage} sentence
 9. Output format: [sentence with _____] | [correct full sentence] | [incorrect option 1] | [incorrect option 2] | [English translation]
 10. There MUST be exactly four | separators (five parts total)
-11. All Latin options must be complete Latin sentences
+11. All ${selectedLanguage} options must be complete ${selectedLanguage} sentences
 
-The LATIN word from flashcards to use: "${word}"
+The ${selectedLanguage} word from flashcards to use: "${word}"
 
-Create the quiz now. Remember: use the exact word "${word}" as given, keep everything in Latin except the final English translation.`,
+Create the quiz now. Remember: use the exact word "${word}" as given, keep everything in ${selectedLanguage} except the final English translation.`,
           },
         ],
       })
@@ -226,14 +280,14 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
       const parts = aiText.split('|').map(p => p.trim())
       
       if (parts.length >= 5) {
-        const sentence = parts[0].trim()
-        const correct = parts[1].trim()
-        const incorrect1 = parts[2].trim()
-        const incorrect2 = parts[3].trim()
+        const sentence = parts[0].trim().toLowerCase()
+        const correct = parts[1].trim().toLowerCase()
+        const incorrect1 = parts[2].trim().toLowerCase()
+        const incorrect2 = parts[3].trim().toLowerCase()
         const englishTranslation = parts[4].trim()
         
         // Verify that there's actually a blank in the sentence
-        if (sentence.includes('_____') && correct.includes(word)) {
+        if (sentence.includes('_____') && correct.toLowerCase().includes(word.toLowerCase())) {
           // Create options array and shuffle
           const options = [correct, incorrect1, incorrect2]
           const shuffled = options.sort(() => Math.random() - 0.5)
@@ -287,12 +341,40 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
           <div className="card add-card">
             <h2>Flashcards</h2>
 
-            <div className="add-form">
-              <label className="label">Front (question)</label>
-              <input id="front-input" type="text" placeholder="e.g. What is React?" value={front} onChange={(e) => setFront(e.target.value)} />
+            {languagesFetched && (
+              <div style={{ marginBottom: 20 }}>
+                <label className="label">Available Languages:</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {languages.map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => {
+                        setSelectedLanguage(lang)
+                        loadLanguageCards(lang)
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: selectedLanguage === lang ? '#4CAF50' : '#2b6cff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 14
+                      }}
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-              <label className="label">Back (answer)</label>
-              <input id="back-input" type="text" placeholder="e.g. A JS library for UIs" value={back} onChange={(e) => setBack(e.target.value)} />
+            <div className="add-form">
+              <label className="label">Front (translation)</label>
+              <input id="front-input" type="text" placeholder="e.g. the boy" value={front} onChange={(e) => setFront(e.target.value)} />
+
+              <label className="label">Back (word)</label>
+              <input id="back-input" type="text" placeholder="e.g. puer" value={back} onChange={(e) => setBack(e.target.value)} />
 
               <div className="add-actions">
                 <button className="primary" onClick={handleAdd} disabled={loading}>{loading ? 'Adding…' : 'Add'}</button>
@@ -366,7 +448,7 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
 
           <div style={{ marginTop: 24 }}>
             <button onClick={generateQuiz} disabled={quizLoading || !cards.length} style={{ width: '100%', padding: 10, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
-              {quizLoading ? 'Generating Quiz…' : 'Generate Latin Quiz'}
+              {quizLoading ? 'Generating Quiz…' : `Generate ${selectedLanguage || 'Language'} Quiz`}
             </button>
           </div>
 
