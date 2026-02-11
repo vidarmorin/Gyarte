@@ -129,7 +129,7 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
     <div className="flashcards-page page">
       <header className="header">
         <div className="header-top">
-          <h1>Chat</h1>
+          <h1>Welcome to My React App</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="logout-button" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>Logout</button>
           </div>
@@ -140,7 +140,6 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
             <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
             <li><a href="#chat">Chat</a></li>
-            <li><a href="#test" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Test</a></li>
           </ul>
         </nav>
       </header>

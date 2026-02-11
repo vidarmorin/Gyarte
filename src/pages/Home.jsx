@@ -22,7 +22,6 @@ export default function Home({ onNavigate }) {
             <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
             <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Chat</a></li>
-            <li><a href="#test" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Test</a></li>
           </ul>
         </nav>
       </header>

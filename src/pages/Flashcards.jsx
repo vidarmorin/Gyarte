@@ -332,6 +332,7 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
             <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
             <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
             <li><a href="#flashcards">Flashcards</a></li>
+            <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Chat</a></li>
           </ul>
         </nav>
       </header>
@@ -339,7 +340,7 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
       <main className="container flash-container">
         <section className="left-col">
           <div className="card add-card">
-            <h2>Flashcards</h2>
+            <h2>Welcome to My React App</h2>
 
             {languagesFetched && (
               <div style={{ marginBottom: 20 }}>
@@ -379,9 +380,6 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
               <div className="add-actions">
                 <button className="primary" onClick={handleAdd} disabled={loading}>{loading ? 'Adding…' : 'Add'}</button>
                 <button onClick={fetchAndShow} disabled={loading}>{loading ? 'Loading…' : 'Fetch'}</button>
-                <button onClick={copyCreateTableSQL} disabled={!userEmail && !sqlSnippet}>Generate table SQL</button>
-                <button onClick={() => setShowServerModal(true)} disabled={!userEmail} title="Server must be running and configured">Create table on server</button>
-                <button onClick={callOllamaAI} disabled={aiLoading}>{aiLoading ? 'Asking AI…' : 'Ask AI'}</button>
               </div>
 
               {error && <div className="error">{error}</div>}

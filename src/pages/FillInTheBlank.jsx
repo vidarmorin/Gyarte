@@ -152,7 +152,7 @@ Now create for the word "${word}":`,
     <div className="flashcards-page page">
       <header className="header">
         <div className="header-top">
-          <h1>Fill in the Blank Quiz</h1>
+          <h1>Welcome to My React App</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="logout-button" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>Logout</button>
           </div>
@@ -160,10 +160,9 @@ Now create for the word "${word}":`,
         <nav className="nav">
           <ul>
             <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
-            <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
             <li><a href="#fillintheblank">Fill in the Blank</a></li>
+            <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
             <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Chat</a></li>
-            <li><a href="#test" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Test</a></li>
           </ul>
         </nav>
       </header>
