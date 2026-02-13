@@ -48,9 +48,9 @@ export default function Chat({ onClose, onNavigate }) {
     setQuizTranslation('')
 
     try {
-      // Pick a random card and use the BACK (answer/Latin word) field
-      const randomCard = cards[Math.floor(Math.random() * cards.length)]
-      const word = randomCard.back // Use the back field - the Latin word/definition
+      // DEVELOPING MUST BE CHANGED
+      const selectedLanguage = 'Swedish'
+      const ChosenNumber = 5
 
       const client = new OpenAI({
         apiKey: 'ollama',
@@ -63,65 +63,49 @@ export default function Chat({ onClose, onNavigate }) {
         messages: [
           {
             role: 'user',
-            content: `IMPORTANT: You are creating a Latin multiple-choice quiz. Follow these STRICT rules:
-1. Create ONLY ONE complete Latin sentence with a blank
-2. The sentence MUST use the EXACT Latin word "${word}" - do NOT use related forms, synonyms, or different conjugations
-3. This word comes from a Latin flashcard vocabulary list and must be used exactly as written
-4. The word MUST appear exactly ONCE in the sentence
-5. Replace ONLY "${word}" with _____ (five underscores)
-6. Do NOT translate or use any non-Latin words
-7. Generate TWO incorrect Latin sentences that are similar but wrong (e.g., wrong word choice, conjugation, or structure)
-8. Provide an ENGLISH translation of the correct full Latin sentence
-9. Output format: [sentence with _____] | [correct full sentence] | [incorrect option 1] | [incorrect option 2] | [English translation]
-10. There MUST be exactly four | separators (five parts total)
-11. All Latin options must be complete Latin sentences
+            content: `IMPORTANT: You are creating a selection "${selectedLanguage}" flashcards. Follow these STRICT rules:
+1. Create ONLY "${ChosenNumber}" flashcard(s) in the formatspecified below - do NOT create more or less than "${ChosenNumber}" flashcard(s)
+2. The flashcard(s) MUST be in the format {"word in ${selectedLanguage}": "English translation"} - ONLY this format is allowed, do NOT include any other text or formatting
+3. All flascards must be put in a single JSON object, do NOT create multiple JSON objects or arrays - {"word1": "translation1", "word2": "translation2", ...} is the correct format
+4. The word(s) MUST be from the "${selectedLanguage}" language and be common vocabulary words
+5. Do NOT include ANY words that are not in "${selectedLanguage}"
+6. The English translation MUST be accurate and concise
+7. Output format: {"word in ${selectedLanguage}": "English translation"} - ONLY this JSON format is allowed, do NOT include any other text or formatting
+8. Do NOT include ANY explanations, apologies, or additional text - ONLY the flashcard(s) in the specified JSON format
+9. The flashcard(s) MUST be unique and not repeated
+10. ONLY return the flashcard(s) in the specified JSON format, do NOT include ANY other text or formatting such as '''json''' before the dict
 
-The LATIN word from flashcards to use: "${word}"
-
-Create the quiz now. Remember: use the exact word "${word}" as given, keep everything in Latin except the final English translation.`,
+Create the flashcard(s) now. Remember: follow the STRICT rules above and output ONLY the flashcard(s) in the specified JSON format.`
           },
         ],
       })
 
       const aiText = response.choices?.[0]?.message?.content || ''
-      const parts = aiText.split('|').map(p => p.trim())
-      
-      if (parts.length >= 5) {
-        const sentence = parts[0].trim().toLowerCase()
-        const correct = parts[1].trim().toLowerCase()
-        const incorrect1 = parts[2].trim().toLowerCase()
-        const incorrect2 = parts[3].trim().toLowerCase()
-        const englishTranslation = parts[4].trim()
-        
-        // Verify that there's actually a blank in the sentence
-        if (sentence.includes('_____') && correct.toLowerCase().includes(word.toLowerCase())) {
-          // Create options array and shuffle
-          const options = [correct, incorrect1, incorrect2]
-          const shuffled = options.sort(() => Math.random() - 0.5)
-          const correctIdx = shuffled.indexOf(correct)
-          
-          setQuizSentence(sentence)
-          setQuizOptions(shuffled)
-          setCorrectIndex(correctIdx)
-          setQuizTranslation(englishTranslation)
-        } else {
-          setQuizFeedback('Error: Generated quiz is invalid. Please try again.')
-        }
-      } else {
-        setQuizFeedback('Error generating quiz. Please try again.')
+      const jsonStart = aiText.indexOf('{')
+      const jsonEnd = aiText.lastIndexOf('}') + 1
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error('Invalid response format: JSON not found')
       }
+
+      
+      const jsonString = aiText.substring(jsonStart, jsonEnd)
+      let flashcardData
+      console.log(aiText)
+      try {
+        flashcardData = JSON.parse(jsonString)
+      } catch (err) {
+        throw new Error('Failed to parse JSON: ' + err.message)
+      }
+      console.log('Parsed flashcard data:', flashcardData)
+
+      // Convert parsed data into flashcard format
+      const newCards = Object.entries(flashcardData).map(([word, translation]) => ({ front: word, back: translation }))
+      setCards(newCards)
     } catch (err) {
-      setQuizFeedback(`Error: ${err.message || String(err)}`)
+      console.error(err)
+      setQuizFeedback('Error generating quiz. Please try again.')
     } finally {
       setQuizLoading(false)
-    }
-  }
-
-  const checkQuizOption = (selectedIndex) => {
-    if (selectedIndex === correctIndex) {
-      setQuizFeedback(`Correct! Translation: ${quizTranslation}`)
-    } else {
-      setQuizFeedback(`Wrong. The correct answer is: ${quizOptions[correctIndex]}`)
     }
   }
 
@@ -146,6 +130,7 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
 
       <main className="container">
         <div style={{ textAlign: 'center', marginTop: 40 }}>
+          
           <button onClick={fetchCards} style={{ width: '200px', padding: 10, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500, marginRight: 10 }}>
             Fetch Cards
           </button>
