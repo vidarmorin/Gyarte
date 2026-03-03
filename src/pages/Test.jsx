@@ -47,12 +47,23 @@ export default function Test({ onClose, onNavigate }) {
     setSaving(true)
     try {
       const dict = JSON.parse(jsonOutput)[language.trim()]
+      // fetch existing record for current user
+      const { data: existing, error: fetchError } = await supabase
+        .from('Users')
+        .select('Flashcards, User')
+        .eq('User', (await supabase.auth.getSession()).data.session?.user?.email || '')
+        .single()
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError // ignore no rows
+      let allFlash = {}
+      if (existing?.Flashcards) {
+        allFlash = JSON.parse(existing.Flashcards)
+      }
+      allFlash[language.trim()] = dict
+      // upsert row
       const { error } = await supabase
-        .from('NyFlashcard')
-        .insert([{ Language: language.trim(), data: JSON.stringify(dict) }])
-      
+        .from('Users')
+        .upsert({ User: (await supabase.auth.getSession()).data.session?.user?.email || '', Flashcards: JSON.stringify(allFlash) }, { onConflict: 'User' })
       if (error) throw error
-      
       alert('Saved to Supabase successfully!')
     } catch (err) {
       alert(`Error saving: ${err.message}`)

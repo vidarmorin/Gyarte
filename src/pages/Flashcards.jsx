@@ -37,16 +37,24 @@ export default function Flashcards({ onClose, onNavigate }) {
     })
   }, [])
 
+  // when we learn the email, pull language list automatically
+  useEffect(() => {
+    if (!userEmail) return
+    fetchAndShow()
+  }, [userEmail])
+
   const fetchAndShow = async () => {
     setLoading(true)
     setError('')
     try {
       const { data, error } = await supabase
-        .from('NyFlashcard')
-        .select('Language')
+        .from('Users')
+        .select('Flashcards')
+        .eq('User', userEmail)
+        .single()
       if (error) throw error
-      const allLanguages = (data || []).map(item => item.Language).filter(Boolean)
-      console.log('All languages in NyFlashcard table:', allLanguages)
+      const flashData = data?.Flashcards ? JSON.parse(data.Flashcards) : {}
+      const allLanguages = Object.keys(flashData)
       const uniqueLanguages = [...new Set(allLanguages)]
       setLanguages(uniqueLanguages)
       setLanguagesFetched(true)
@@ -63,13 +71,13 @@ export default function Flashcards({ onClose, onNavigate }) {
     setError('')
     try {
       const { data, error } = await supabase
-        .from('NyFlashcard')
-        .select('data')
-        .eq('Language', language)
+        .from('Users')
+        .select('Flashcards')
+        .eq('User', userEmail)
         .single()
       if (error) throw error
-      
-      const dict = JSON.parse(data.data)
+      const allFlash = data?.Flashcards ? JSON.parse(data.Flashcards) : {}
+      const dict = allFlash[language] || {}
       const mapped = Object.entries(dict).map(([word, translation], index) => ({
         id: index + 1,
         front: translation,
@@ -85,29 +93,38 @@ export default function Flashcards({ onClose, onNavigate }) {
     }
   }
 
+  // when the user chooses a language (or it is set programmatically), load its cards
+  useEffect(() => {
+    if (selectedLanguage) {
+      loadLanguageCards(selectedLanguage)
+    }
+  }, [selectedLanguage])
+
   const handleAdd = async () => {
     setError('')
     if (!selectedLanguage) return setError('Please select a language first.')
     if (!front.trim() || !back.trim()) return setError('Enter both front and back.')
     setLoading(true)
     try {
-      // Fetch current data
+      // Fetch current data from Users table
       const { data: currentData, error: fetchError } = await supabase
-        .from('NyFlashcard')
-        .select('data')
-        .eq('Language', selectedLanguage)
+        .from('Users')
+        .select('Flashcards')
+        .eq('User', userEmail)
         .single()
       if (fetchError) throw fetchError
 
-      const dict = JSON.parse(currentData.data)
+      const allFlash = currentData?.Flashcards ? JSON.parse(currentData.Flashcards) : {}
+      const dict = allFlash[selectedLanguage] || {}
       // Add new entry: back (word) : front (translation)
       dict[back.trim()] = front.trim()
+      allFlash[selectedLanguage] = dict
 
       // Update the row
       const { error: updateError } = await supabase
-        .from('NyFlashcard')
-        .update({ data: JSON.stringify(dict) })
-        .eq('Language', selectedLanguage)
+        .from('Users')
+        .update({ Flashcards: JSON.stringify(allFlash) })
+        .eq('User', userEmail)
       if (updateError) throw updateError
 
       setFront('')
@@ -379,7 +396,9 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
 
               <div className="add-actions">
                 <button className="primary" onClick={handleAdd} disabled={loading}>{loading ? 'Adding…' : 'Add'}</button>
-                <button onClick={fetchAndShow} disabled={loading}>{loading ? 'Loading…' : 'Fetch'}</button>
+                {!languagesFetched && (
+                  <button onClick={fetchAndShow} disabled={loading}>{loading ? 'Loading…' : 'Fetch'}</button>
+                )}
               </div>
 
               {error && <div className="error">{error}</div>}
@@ -452,7 +471,7 @@ Create the quiz now. Remember: use the exact word "${word}" as given, keep every
 
           {quizSentence && (
             <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f0f8ff', border: '1px solid #2b6cff', borderRadius: 4 }}>
-              <label className="label">Complete the sentence in Latin:</label>
+              <label className="label">Complete the sentence in {selectedLanguage}:</label>
               <p style={{ fontSize: 16, marginBottom: 12, marginTop: 8 }}>{quizSentence}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {quizOptions.map((option, index) => (

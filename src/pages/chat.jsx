@@ -20,21 +20,28 @@ export default function Chat({ onClose, onNavigate }) {
   const [generatedCards, setGeneratedCards] = useState([])
   const [selectedCardIndices, setSelectedCardIndices] = useState(new Set())
   
+  // load session once on mount to get the user email
   useEffect(() => {
-    // fetch session to display user email
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUserEmail(session?.user?.email || '')
     })
+  }, [])
 
-    // fetch languages from NyFlashcard table
+  // whenever the email is known we can pull the languages
+  useEffect(() => {
+    if (!userEmail) return
+
     const fetchLanguages = async () => {
       try {
         const { data, error } = await supabase
-          .from('NyFlashcard')
-          .select('Language')
-          .order('Language', { ascending: true })
+          .from('Users')
+          .select('Flashcards')
+          .eq('User', userEmail)
+          .maybeSingle()
+        // maybeSingle returns null instead of error when no rows
         if (error) throw error
-        const uniqueLanguages = [...new Set((data || []).map(c => c.Language))]
+        const flashData = data?.Flashcards ? JSON.parse(data.Flashcards) : {}
+        const uniqueLanguages = Object.keys(flashData)
         setLanguages(uniqueLanguages)
       } catch (err) {
         console.error('Error fetching languages:', err)
@@ -42,18 +49,19 @@ export default function Chat({ onClose, onNavigate }) {
     }
 
     fetchLanguages()
-  }, [])
+  }, [userEmail])
 
   const fetchCards = async () => {
     setFetchCardsLoading(true)
     try {
       const { data, error } = await supabase
-        .from('NyFlashcard')
-        .select('data')
-        .eq('Language', selectedLanguage)
-        .single()
+        .from('Users')
+        .select('Flashcards')
+        .eq('User', userEmail)
+        .maybeSingle()
       if (error) throw error
-      const dict = JSON.parse(data.data)
+      const allFlash = data?.Flashcards ? JSON.parse(data.Flashcards) : {}
+      const dict = allFlash[selectedLanguage] || {}
       const mapped = Object.entries(dict).map(([word, translation]) => ({
         front: word,
         back: translation
@@ -86,14 +94,15 @@ export default function Chat({ onClose, onNavigate }) {
     try {
       // Fetch all existing words for this language to exclude them
       const { data: existingData, error: fetchError } = await supabase
-        .from('NyFlashcard')
-        .select('data')
-        .eq('Language', selectedLanguage)
-        .single()
+        .from('Users')
+        .select('Flashcards')
+        .eq('User', userEmail)
+        .maybeSingle()
       
       if (fetchError) throw fetchError
       
-      const existingDict = JSON.parse(existingData.data)
+      const allFlash = existingData?.Flashcards ? JSON.parse(existingData.Flashcards) : {}
+      const existingDict = allFlash[selectedLanguage] || {}
       const existingWords = Object.keys(existingDict)
       const existingWordsString = existingWords.join(', ')
       const ChosenNumber = selectedNumber
@@ -183,26 +192,25 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
 
     try {
       const cardsToSave = Array.from(selectedCardIndices).map(index => generatedCards[index])
-      
-      const { data: currentData, error: fetchError } = await supabase
-        .from('NyFlashcard')
-        .select('data')
-        .eq('Language', selectedLanguage)
-        .single()
-      
+
+      // load current user flashcards JSON
+      const { data: current, error: fetchError } = await supabase
+        .from('Users')
+        .select('Flashcards')
+        .eq('User', userEmail)
+        .maybeSingle()
       if (fetchError) throw fetchError
 
-      const existingDict = JSON.parse(currentData.data)
-      
+      let allFlash = current?.Flashcards ? JSON.parse(current.Flashcards) : {}
+      const dict = allFlash[selectedLanguage] || {}
       cardsToSave.forEach(card => {
-        existingDict[card.front] = card.back
+        dict[card.front] = card.back
       })
+      allFlash[selectedLanguage] = dict
 
       const { error: updateError } = await supabase
-        .from('NyFlashcard')
-        .update({ data: JSON.stringify(existingDict) })
-        .eq('Language', selectedLanguage)
-
+        .from('Users')
+        .upsert({ User: userEmail, Flashcards: JSON.stringify(allFlash) }, { onConflict: 'User' })
       if (updateError) throw updateError
 
       setQuizFeedback(`Successfully saved ${selectedCardIndices.size} card(s)!`)
@@ -230,9 +238,19 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
       return
     }
     try {
+      // fetch current Flashcards JSON for user
+      const { data: current, error: fetchErr } = await supabase
+        .from('Users')
+        .select('Flashcards')
+        .eq('User', userEmail)
+        .maybeSingle()
+      if (fetchErr) throw fetchErr
+      let allFlash = current?.Flashcards ? JSON.parse(current.Flashcards) : {}
+      allFlash[lang] = {}
+      // upsert
       const { error } = await supabase
-        .from('NyFlashcard')
-        .insert([{ Language: lang, data: '{}' }])
+        .from('Users')
+        .upsert({ User: userEmail, Flashcards: JSON.stringify(allFlash) }, { onConflict: 'User' })
       if (error) throw error
       setLanguages(prev => [...prev, lang])
       setSelectedLanguage(lang)
