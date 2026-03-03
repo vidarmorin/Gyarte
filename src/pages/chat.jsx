@@ -14,6 +14,7 @@ export default function Chat({ onClose, onNavigate }) {
   const [quizFeedback, setQuizFeedback] = useState('')
   const [languages, setLanguages] = useState([])
   const [selectedLanguage, setSelectedLanguage] = useState('')
+  const [newLanguageInput, setNewLanguageInput] = useState('')
   const [selectedNumber, setSelectedNumber] = useState(5)
   const [fetchCardsLoading, setFetchCardsLoading] = useState(false)
   const [generatedCards, setGeneratedCards] = useState([])
@@ -68,6 +69,10 @@ export default function Chat({ onClose, onNavigate }) {
   const generateQuiz = async () => {
     if (!selectedLanguage) {
       setQuizFeedback('Please select a language first.')
+      return
+    }
+    if (!languages.includes(selectedLanguage)) {
+      setQuizFeedback('Selected language does not exist in database.')
       return
     }
 
@@ -214,6 +219,31 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
     setSelectedCardIndices(new Set())
   }
 
+  const addLanguage = async () => {
+    const lang = newLanguageInput.trim()
+    if (!lang) {
+      setQuizFeedback('Enter a language name to add.')
+      return
+    }
+    if (languages.includes(lang)) {
+      setQuizFeedback('Language already exists.')
+      return
+    }
+    try {
+      const { error } = await supabase
+        .from('NyFlashcard')
+        .insert([{ Language: lang, data: '{}' }])
+      if (error) throw error
+      setLanguages(prev => [...prev, lang])
+      setSelectedLanguage(lang)
+      setNewLanguageInput('')
+      setQuizFeedback(`Language "${lang}" added.`)
+    } catch (err) {
+      console.error(err)
+      setQuizFeedback('Error adding language.')
+    }
+  }
+
   const checkQuizOption = (index) => {
     if (index === correctIndex) {
       setQuizFeedback('Correct! Well done!')
@@ -244,7 +274,6 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
       <main className="container">
         <div style={{ textAlign: 'center', marginTop: 40 }}>
           
-          {languages.length > 0 && (
           <div style={{ marginTop: 20, marginBottom: 20 }}>
             <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}>Select Language:</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -267,8 +296,22 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
                 </button>
               ))}
             </div>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <input
+                type="text"
+                placeholder="Add new language"
+                value={newLanguageInput}
+                onChange={(e) => setNewLanguageInput(e.target.value)}
+                style={{ padding: 8, fontSize: 14, borderRadius: 4, border: '1px solid #ccc', width: 200 }}
+              />
+              <button
+                onClick={addLanguage}
+                style={{ padding: 8, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14 }}
+              >
+                Add
+              </button>
+            </div>
           </div>
-          )}
 
           <select value={selectedNumber} onChange={(e) => setSelectedNumber(Number(e.target.value))} style={{ padding: 10, backgroundColor: '#fff', color: '#333', border: '1px solid #2b6cff', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500, marginRight: 10 }}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
