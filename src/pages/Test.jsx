@@ -1,152 +1,133 @@
-import React, { useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import './Home.css'; // reuse your existing styling
 
-export default function Test({ onClose, onNavigate }) {
-  const [language, setLanguage] = useState('')
-  const [flashcardsText, setFlashcardsText] = useState('')
-  const [jsonOutput, setJsonOutput] = useState('')
-  const [saving, setSaving] = useState(false)
+export default function Chat({ onNavigate }) {
+  const [languages, setLanguages] = useState([]);
+  const [selectedLang, setSelectedLang] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
 
-  const formatFlashcards = () => {
-    if (!language.trim()) {
-      alert('Please enter a language')
-      return
+  // Load languages from Supabase
+  useEffect(() => {
+    async function loadLanguages() {
+      const { data, error } = await supabase.from('languages').select('*');
+      if (!error) setLanguages(data);
     }
-    if (!flashcardsText.trim()) {
-      alert('Please enter flashcards')
-      return
-    }
+    loadLanguages();
+  }, []);
 
-    const lines = flashcardsText.trim().split('\n')
-    const dict = {}
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
-    for (const line of lines) {
-      const parts = line.split(':')
-      if (parts.length >= 2) {
-        const word = parts[0].trim()
-        const translation = parts.slice(1).join(':').trim()
-        if (word && translation) {
-          dict[word] = translation
-        }
-      }
-    }
+  async function sendMessage() {
+    if (!input.trim()) return;
 
-    const result = {
-      [language.trim()]: dict
-    }
+    const userMessage = { role: 'user', content: input };
 
-    setJsonOutput(JSON.stringify(result, null, 2))
-  }
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: selectedLang,
+        message: input
+      })
+    });
 
-  const saveToSupabase = async () => {
-    if (!language.trim() || !jsonOutput) {
-      alert('Please format the flashcards first')
-      return
-    }
+    const data = await res.json();
 
-    setSaving(true)
-    try {
-      const dict = JSON.parse(jsonOutput)[language.trim()]
-      // fetch existing record for current user
-      const { data: existing, error: fetchError } = await supabase
-        .from('Users')
-        .select('Flashcards, User')
-        .eq('User', (await supabase.auth.getSession()).data.session?.user?.email || '')
-        .single()
-      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError // ignore no rows
-      let allFlash = {}
-      if (existing?.Flashcards) {
-        allFlash = JSON.parse(existing.Flashcards)
-      }
-      allFlash[language.trim()] = dict
-      // upsert row
-      const { error } = await supabase
-        .from('Users')
-        .upsert({ User: (await supabase.auth.getSession()).data.session?.user?.email || '', Flashcards: JSON.stringify(allFlash) }, { onConflict: 'User' })
-      if (error) throw error
-      alert('Saved to Supabase successfully!')
-    } catch (err) {
-      alert(`Error saving: ${err.message}`)
-    } finally {
-      setSaving(false)
-    }
+    setMessages(prev => [
+      ...prev,
+      userMessage,
+      { role: 'assistant', content: data.reply, score: data.score }
+    ]);
+
+    setInput('');
   }
 
   return (
-    <div className="flashcards-page page">
+    <div className="home-container">
+      {/* HEADER */}
       <header className="header">
         <div className="header-top">
-          <h1>Welcome to My React App</h1>
+          <h1>AI Language Chat</h1>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="logout-button" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>Logout</button>
+            <button className="logout-button" onClick={handleLogout}>Logout</button>
           </div>
         </div>
+
+        {/* NAVIGATION */}
         <nav className="nav">
           <ul>
-            <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
-            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
-            <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
-            <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('alphabets'); }}>Alphabets</a></li>
-            <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Chat</a></li>
+            <li><a href="#home" onClick={(e) => { e.preventDefault(); onNavigate('home'); }}>Home</a></li>
+            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
+            <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate('flashcards'); }}>Flashcards</a></li>
+            <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate('test'); }}>Alphabets</a></li>
+            <li><a href="#chat" onClick={(e) => e.preventDefault()}>Chat</a></li>
           </ul>
         </nav>
       </header>
 
-      <main className="container">
-        <div style={{ maxWidth: 600, margin: '40px auto' }}>
-          <h2>Format Flashcards to JSON</h2>
+      {/* MAIN CONTENT */}
+      <main className="main">
+        <section className="hero">
+          <h2>Practice a Language with AI</h2>
+          <p>Select a language and start chatting. The AI will match your level and score your responses.</p>
+        </section>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', marginBottom: 8 }}>Language:</label>
-            <input
-              type="text"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              placeholder="e.g. Latin"
-              style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
-            />
-          </div>
+        {/* LANGUAGE SELECTOR */}
+        <section className="features">
+          <h2>Select Language</h2>
+          <select
+            className="cta-button"
+            value={selectedLang}
+            onChange={(e) => setSelectedLang(e.target.value)}
+          >
+            <option value="">Choose a language…</option>
+            {languages.map(lang => (
+              <option key={lang.id} value={lang.code}>
+                {lang.name}
+              </option>
+            ))}
+          </select>
+        </section>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', marginBottom: 8 }}>Flashcards (word:translation, one per line):</label>
-            <textarea
-              value={flashcardsText}
-              onChange={(e) => setFlashcardsText(e.target.value)}
-              placeholder="puer:boy&#10;puella:girl&#10;domus:house"
-              rows={10}
-              style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, fontFamily: 'monospace' }}
-            />
-          </div>
+        {/* CHAT WINDOW */}
+        {selectedLang && (
+          <section className="features">
+            <h2>Chat in {selectedLang.toUpperCase()}</h2>
 
-          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-            <button
-              onClick={formatFlashcards}
-              style={{ padding: '10px 20px', backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-            >
-              Format to JSON
-            </button>
-            <button
-              onClick={saveToSupabase}
-              disabled={saving || !jsonOutput}
-              style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-            >
-              {saving ? 'Saving…' : 'Save to Supabase'}
-            </button>
-          </div>
-
-          {jsonOutput && (
-            <div style={{ marginTop: 20 }}>
-              <label style={{ display: 'block', marginBottom: 8 }}>JSON Output:</label>
-              <textarea
-                value={jsonOutput}
-                readOnly
-                rows={15}
-                style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, fontFamily: 'monospace', backgroundColor: '#f9f9f9' }}
-              />
+            <div className="feature-card" style={{ maxHeight: 300, overflowY: 'auto' }}>
+              {messages.map((m, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <strong>{m.role === 'user' ? 'You:' : 'AI:'}</strong>
+                  <p>{m.content}</p>
+                  {m.score && (
+                    <small>Score: {m.score}/10</small>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <input
+                className="cta-button"
+                style={{ flex: 1 }}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message…"
+              />
+              <button className="cta-button" onClick={sendMessage}>Send</button>
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p>&copy; 2025 My React App. All rights reserved.</p>
+      </footer>
     </div>
-  )
+  );
 }
