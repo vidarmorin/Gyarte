@@ -311,10 +311,10 @@ Respond ONLY in this JSON format:
         <nav className="nav">
           <ul>
             <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
-            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
+            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Alphabets</a></li>
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
-            <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('alphabets'); }}>Alphabets</a></li>
-            <li><a href="#chat">Chat</a></li>
+            <li><a href="#alphabets">Chat</a></li>
+            <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Generate Flashcards</a></li>
           </ul>
         </nav>
       </header>

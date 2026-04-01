@@ -282,10 +282,10 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
         <nav className="nav">
           <ul>
             <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
-            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Fill in the Blank</a></li>
+            <li><a href="#fillintheblank" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('fillintheblank'); }}>Alphabets</a></li>
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
-            <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Alphabets</a></li>
-            <li><a href="#chat">Chat</a></li>
+            <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Chat</a></li>
+            <li><a href="#chat">Generate Flashcards</a></li>
           </ul>
         </nav>
       </header>

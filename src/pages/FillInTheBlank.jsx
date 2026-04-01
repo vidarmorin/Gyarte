@@ -234,10 +234,10 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
         <nav className="nav">
           <ul>
             <li><a href="#home" onClick={(e) => { e.preventDefault(); onClose ? onClose() : (window.location.href = '/'); }}>Home</a></li>
-            <li><a href="#fillintheblank">Fill in the Blank</a></li>
+            <li><a href="#fillintheblank">Alphabets</a></li>
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
-            <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Alphabets</a></li>
-            <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Chat</a></li>
+            <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Chat</a></li>
+            <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Generate Flashcards</a></li>
           </ul>
         </nav>
       </header>
