@@ -184,30 +184,64 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
         baseURL: 'http://10.22.1.100:11434/v1',
         dangerouslyAllowBrowser: true,
       })
-      const response = await client.chat.completions.create({
-        model: 'gemma3:12b',
-        messages: [
-          {
-            role: 'user',
-            content: `You are an expert linguist. Rate the accuracy of this Latin transcription from 1 to 10 (whole integer only). Original word: "${generatedWord}" in the ${selectedAlphabet} alphabet. Transcription: "${transcription}". Respond with a single integer (1-10) and nothing else.`,
-          },
-        ],
-      })
-      const text = response.choices?.[0]?.message?.content || ''
-      const num = parseInt(text.trim(), 10)
-      if (isNaN(num) || num < 1 || num > 10) {
-        throw new Error('Invalid rating returned')
-      }
-      setRating(num)
+const response = await client.chat.completions.create({
+  model: 'gemma3:12b',
+  messages: [
+    {
+      role: 'user',
+      content: `
+You are an expert linguist.
+
+Evaluate the accuracy of this Latin transcription.
+
+Original word: "${generatedWord}" (written in ${selectedAlphabet} alphabet)
+Transcription: "${transcription}"
+
+Return ONLY valid JSON in this exact format:
+
+{
+  "rating": <integer 1-10>,
+  "correctedTranscription": "<string>"
+}
+
+Do not include explanations or extra text.
+      `,
+    },
+  ],
+})
+
+const raw = response.choices?.[0]?.message?.content || ''
+const text = raw.trim()
+
+// Remove code fences if present
+const cleaned = text.replace(/```json|```/g, '').trim()
+
+let data
+try {
+  data = JSON.parse(cleaned)
+} catch (e) {
+  throw new Error('Model did not return valid JSON')
+}
+
+const { rating, correctedTranscription } = data
+
+if (
+  typeof rating !== 'number' ||
+  rating < 1 ||
+  rating > 10 ||
+  typeof correctedTranscription !== 'string'
+) {
+  throw new Error('Invalid data returned')
+}
+
+setRating(rating)
+setAiFeedback(`Correct transcription: ${correctedTranscription}`)
     } catch (err) {
       console.error(err)
-      setAiFeedback('Error rating transcription.')
+      setAiFeedback('Error rating transcription. Make sure your transcription is valid and try again.')
     } finally {
       setRatingLoading(false)
-    }
-  }
-
-
+    }}
   const checkWord = () => {
     const trimmed = inputWord.trim()
     if (!trimmed) {
@@ -335,21 +369,7 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
             <div style={{ marginBottom: 20, color: 'red' }}>{aiFeedback}</div>
           )}
 
-          <div>
-            <input
-              type="text"
-              placeholder="Type Latin word"
-              value={inputWord}
-              onChange={(e) => setInputWord(e.target.value)}
-              style={{ padding: 8, fontSize: 14, width: 240, marginRight: 8 }}
-            />
-            <button
-              onClick={checkWord}
-              style={{ padding: 8, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-            >
-              Check
-            </button>
-          </div>
+
         </div>
 
         {result && (

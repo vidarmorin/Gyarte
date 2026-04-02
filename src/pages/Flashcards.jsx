@@ -274,21 +274,37 @@ export default function Flashcards({ onClose, onNavigate }) {
           {
             role: 'user',
             content: `IMPORTANT: You are creating a ${selectedLanguage} multiple-choice quiz. Follow these STRICT rules:
-1. Create ONLY ONE complete ${selectedLanguage} sentence with a blank
-2. The sentence MUST use the EXACT ${selectedLanguage} word "${word}" - do NOT use related forms, synonyms, or different conjugations
-3. This word comes from a ${selectedLanguage} flashcard vocabulary list and must be used exactly as written
-4. The word MUST appear exactly ONCE in the sentence
-5. Replace ONLY "${word}" with _____ (five underscores)
-6. Do NOT translate or use any non-${selectedLanguage} words
-7. Generate TWO incorrect ${selectedLanguage} sentences that are similar but wrong (e.g., wrong word choice, conjugation, or structure)
-8. Provide an ENGLISH translation of the correct full ${selectedLanguage} sentence
-9. Output format: [sentence with _____] | [correct full sentence] | [incorrect option 1] | [incorrect option 2] | [English translation]
-10. There MUST be exactly four | separators (five parts total)
-11. All ${selectedLanguage} options must be complete ${selectedLanguage} sentences
 
-The ${selectedLanguage} word from flashcards to use: "${word}"
+1. First, create ONE natural, complete ${selectedLanguage} sentence that contains the EXACT word "${word}" exactly once.
+   - Do NOT modify the word "${word}" in any way.
+   - Do NOT use synonyms, related forms, or different conjugations.
 
-Create the quiz now. Remember: use the exact word "${word}" as given, keep everything in ${selectedLanguage} except the final English translation.`,
+2. Then create a second version of that SAME sentence, but replace ONLY the word "${word}" with "_____".
+   - You MUST NOT change, remove, reorder, or replace ANY other words.
+   - The ONLY allowed change is replacing "${word}" with "_____".
+
+3. Next, generate TWO incorrect ${selectedLanguage} sentences.
+
+CRITICAL RULE FOR INCORRECT OPTIONS:
+- The incorrect options MUST keep the ENTIRE sentence identical to the correct sentence.
+- The ONLY allowed difference is ONE small grammatical error (wrong article, wrong pronoun, wrong preposition, or wrong verb conjugation).
+- You are NOT allowed to change ANY nouns, verbs, adjectives, or objects.
+- You are NOT allowed to introduce ANY new vocabulary.
+- You are NOT allowed to replace or modify ANY word except the one containing the intentional grammatical error.
+- You are NOT allowed to change the meaning of the sentence.
+- You are NOT allowed to change "${word}" or any other word in the sentence except for the single grammatical error.
+- You are NOT allowed to change words like "voyage", "Italie", etc. EVER.
+
+4. Provide an ENGLISH translation of the correct full ${selectedLanguage} sentence.
+
+5. Output format must contain EXACTLY five parts separated by EXACTLY four "|" characters:
+   [sentence with _____] | [correct full sentence] | [incorrect option 1] | [incorrect option 2] | [English translation]
+
+6. All ${selectedLanguage} sentences must be complete, grammatical sentences (except for the intentional error in the incorrect options).
+
+The ${selectedLanguage} word to use is: "${word}"
+
+Create the quiz now.`,
           },
         ],
       })
