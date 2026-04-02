@@ -184,12 +184,13 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
         baseURL: 'http://10.22.1.100:11434/v1',
         dangerouslyAllowBrowser: true,
       })
-const response = await client.chat.completions.create({
-  model: 'gemma3:12b',
-  messages: [
-    {
-      role: 'user',
-      content: `
+try {
+  const response = await client.chat.completions.create({
+    model: 'gemma3:12b',
+    messages: [
+      {
+        role: 'user',
+        content: `
 You are an expert linguist.
 
 Evaluate the accuracy of this Latin transcription.
@@ -205,40 +206,65 @@ Return ONLY valid JSON in this exact format:
 }
 
 Do not include explanations or extra text.
-      `,
-    },
-  ],
-})
+        `,
+      },
+    ],
+  })
 
-const raw = response.choices?.[0]?.message?.content || ''
-const text = raw.trim()
+  // --- Extract and clean model output ---
+  const raw = response.choices?.[0]?.message?.content || ''
+  const text = raw.trim()
+  const cleaned = text.replace(/```json|```/g, '').trim()
 
-// Remove code fences if present
-const cleaned = text.replace(/```json|```/g, '').trim()
+  // --- Parse JSON ---
+  let data
+  try {
+    data = JSON.parse(cleaned)
+  } catch (e) {
+    throw new Error('Model did not return valid JSON')
+  }
 
-let data
-try {
-  data = JSON.parse(cleaned)
-} catch (e) {
-  throw new Error('Model did not return valid JSON')
+  const { rating, correctedTranscription } = data
+
+  // --- Validate ---
+  if (
+    typeof rating !== 'number' ||
+    rating < 1 ||
+    rating > 10 ||
+    typeof correctedTranscription !== 'string'
+  ) {
+    throw new Error('Invalid data returned')
+  }
+
+  // --- Save rating ---
+  setRating(rating)
+
+  // --- Choose color based on rating ---
+  let color
+  if (rating === 10) {
+    color = 'green'
+  } else if (rating >= 5) {
+    color = 'goldenrod'
+  } else {
+    color = 'red'
+  }
+
+  // --- Set styled feedback ---
+  setAiFeedback(
+    `<span style="color: ${color}; font-weight: bold;">
+       Correct transcription: ${correctedTranscription}
+     </span>`
+  )
+
+} catch (err) {
+  console.error(err)
+  setAiFeedback('Error rating transcription.')
+} finally {
+  setRatingLoading(false)
 }
-
-const { rating, correctedTranscription } = data
-
-if (
-  typeof rating !== 'number' ||
-  rating < 1 ||
-  rating > 10 ||
-  typeof correctedTranscription !== 'string'
-) {
-  throw new Error('Invalid data returned')
-}
-
-setRating(rating)
-setAiFeedback(`Correct transcription: ${correctedTranscription}`)
-    } catch (err) {
+  } catch (err) {
       console.error(err)
-      setAiFeedback('Error rating transcription. Make sure your transcription is valid and try again.')
+      setAiFeedback('Error rating transcription.')
     } finally {
       setRatingLoading(false)
     }}
@@ -366,7 +392,7 @@ setAiFeedback(`Correct transcription: ${correctedTranscription}`)
           )}
 
           {aiFeedback && (
-            <div style={{ marginBottom: 20, color: 'red' }}>{aiFeedback}</div>
+            <div dangerouslySetInnerHTML={{ __html: aiFeedback }} />
           )}
 
 
