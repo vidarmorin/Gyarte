@@ -100,8 +100,16 @@ export default function Auth() {
             />
           </div>
 
-          {error && <div className="error-message">{error}</div>}
-          {message && <div className="success-message">{message}</div>}
+          {error && (
+            <div className="error-message" role="alert" aria-live="assertive">
+              {error}
+            </div>
+          )}
+          {message && (
+            <div className="success-message" role="status" aria-live="polite">
+              {message}
+            </div>
+          )}
 
           <button
             type="submit"

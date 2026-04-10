@@ -11,6 +11,28 @@ body {
   overflow-y: scroll;
 }
 
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.skip-link:focus-visible {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  padding: 0.75rem 1rem;
+  background: white;
+  color: #2b6cff;
+  border: 2px solid #2b6cff;
+  z-index: 1000;
+}
+
 .home-container {
   display: flex;
   flex-direction: column;
@@ -69,8 +91,45 @@ body {
   transition: opacity 0.3s ease;
 }
 
+body.focus-enabled a:focus-visible,
+body.focus-enabled button:focus-visible,
+body.focus-enabled input:focus-visible,
+body.focus-enabled textarea:focus-visible,
+body.focus-enabled select:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: 3px;
+}
+
 .nav a:hover {
   opacity: 0.8;
+}
+
+body.high-contrast {
+  background: #000;
+  color: #fff;
+}
+
+body.high-contrast .header {
+  background: #000;
+  color: #fff;
+}
+
+body.high-contrast .home-container,
+body.high-contrast .main,
+body.high-contrast .feature-card,
+body.high-contrast .footer {
+  background: #111;
+  color: #fff;
+}
+
+body.high-contrast .feature-card {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+body.high-contrast .cta-button,
+body.high-contrast .logout-button {
+  background: #fff;
+  color: #000;
 }
 
 /* Main Content */

@@ -2,13 +2,16 @@ import React from 'react';
 import { supabase } from '../lib/supabaseClient';
 import './Home.css';
 
-export default function Home({ onNavigate }) {
+export default function Home({ onNavigate, settings }) {
   const handleLogout = async () => {
     await supabase.auth.signOut()
   }
 
   return (
     <div className="home-container">
+      {settings?.skipLink && (
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+      )}
       <header className="header">
         <div className="header-top">
           <h1>LoquorAI</h1>
@@ -23,11 +26,12 @@ export default function Home({ onNavigate }) {
             <li><a href="#flashcards" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('flashcards'); }}>Flashcards</a></li>
             <li><a href="#alphabets" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('test'); }}>Chat</a></li>
             <li><a href="#chat" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chat'); }}>Generate Flashcards</a></li>
+            <li><a href="#settings" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('settings'); }}>Settings</a></li>
           </ul>
         </nav>
       </header>
 
-      <main className="main">
+      <main id="main-content" className="main">
         <section className="hero">
           <h2>Hello, Welcome!</h2>
           <p>This is a basic React homepage to get you started.</p>

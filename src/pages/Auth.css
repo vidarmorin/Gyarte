@@ -49,9 +49,45 @@ body {
 }
 
 .form-group input:focus {
-  outline: none;
   border-color: #2b6cff;
   box-shadow: 0 0 0 3px rgba(43, 108, 255, 0.06);
+}
+
+body.focus-enabled a:focus-visible,
+body.focus-enabled button:focus-visible,
+body.focus-enabled input:focus-visible,
+body.focus-enabled textarea:focus-visible,
+body.focus-enabled select:focus-visible {
+  outline: 3px solid #2b6cff;
+  outline-offset: 3px;
+}
+
+body.high-contrast .auth-container {
+  background: #000;
+}
+
+body.high-contrast .auth-card {
+  background: #111;
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+body.high-contrast .auth-card h1,
+body.high-contrast .form-group label,
+body.high-contrast .toggle-auth {
+  color: #fff;
+}
+
+body.high-contrast .form-group input {
+  background: #111;
+  color: #fff;
+  border-color: #444;
+}
+
+body.high-contrast .submit-button,
+body.high-contrast .toggle-button {
+  background: #fff;
+  color: #000;
 }
 
 .form-group input::placeholder {
