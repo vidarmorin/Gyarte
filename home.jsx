@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="home-container">
       <header className="header">
-        <h1>Welcome to My React App</h1>
+        <h1>LoquorAI</h1>
         <nav className="nav">
           <ul>
             <li><a href="#home">Home</a></li>

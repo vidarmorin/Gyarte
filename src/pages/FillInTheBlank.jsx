@@ -286,7 +286,7 @@ Do not include explanations or extra text.
     <div className="flashcards-page page">
       <header className="header">
         <div className="header-top">
-          <h1>Welcome to My React App</h1>
+          <h1>LoquorAI</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="logout-button" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>Logout</button>
           </div>

@@ -294,7 +294,7 @@ Respond ONLY in this JSON format:
     <div className="flashcards-page page">
       <header className="header">
         <div className="header-top">
-          <h1>Welcome to My React App</h1>
+          <h1>LoquorAI</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               className="logout-button"

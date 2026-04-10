@@ -11,7 +11,7 @@ export default function Home({ onNavigate }) {
     <div className="home-container">
       <header className="header">
         <div className="header-top">
-          <h1>Welcome to My React App</h1>
+          <h1>LoquorAI</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="logout-button" onClick={handleLogout}>Logout</button>
           </div>

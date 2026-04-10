@@ -7,7 +7,7 @@ export default function Alphabets({ onClose, onNavigate }) {
     <div className="flashcards-page page">
       <header className="header">
         <div className="header-top">
-          <h1>Alphabets</h1>
+          <h1>LoquorAI</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="logout-button" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>Logout</button>
           </div>
