@@ -19,6 +19,7 @@ export default function Chat({ onClose, onNavigate }) {
   const [fetchCardsLoading, setFetchCardsLoading] = useState(false)
   const [generatedCards, setGeneratedCards] = useState([])
   const [selectedCardIndices, setSelectedCardIndices] = useState(new Set())
+  const [topic, setTopic] = useState('')
   
   // load session once on mount to get the user email
   useEffect(() => {
@@ -114,11 +115,11 @@ export default function Chat({ onClose, onNavigate }) {
       })
 
       const response = await client.chat.completions.create({
-        model: 'gemma3:12b',
+        model: 'gpt-oss-120b',
         messages: [
           {
             role: 'user',
-            content: `IMPORTANT: You are creating NEW "${selectedLanguage}" flashcards. Follow these STRICT rules:
+            content: `IMPORTANT: You are creating NEW "${selectedLanguage}" flashcards${topic ? ` about the topic "${topic}"` : ''}. Follow these STRICT rules:
 
 EXISTING WORDS IN DATABASE (DO NOT USE THESE):
 ${existingWordsString}
@@ -127,7 +128,7 @@ ${existingWordsString}
 2. The flashcards MUST be in the format {"word in ${selectedLanguage}": "English translation"} - ONLY this format is allowed
 3. All flashcards must be put in a single JSON object - {"word1": "translation1", "word2": "translation2", ...} is the correct format
 4. CRITICAL: Do NOT include ANY words from the existing words list above - ONLY create completely NEW words that are NOT in the database
-5. The word(s) MUST be from the "${selectedLanguage}" language and be common vocabulary words
+5. The word(s) MUST be from the "${selectedLanguage}" language${topic ? ` and related to the topic "${topic}"` : ' and be common vocabulary words'}
 6. Each word MUST be unique and different from all other words you generate
 7. The English translation MUST be accurate and concise
 8. Do NOT include ANY explanations, apologies, or additional text - ONLY the flashcard JSON
@@ -339,6 +340,14 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
               </option>
             ))}
           </select>
+
+          <input
+            type="text"
+            placeholder="Optional topic (e.g., vacation, school)"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            style={{ padding: 10, backgroundColor: '#fff', color: '#333', border: '1px solid #2b6cff', borderRadius: 4, fontSize: 14, fontWeight: 500, marginRight: 10, width: 200 }}
+          />
           
           <button id="generate-quiz-button" onClick={generateQuiz} disabled={quizLoading || !selectedLanguage} style={{ width: '200px', padding: 10, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: quizLoading || !selectedLanguage ? 0.5 : 1 }}>
             {quizLoading ? 'Generating Quiz…' : 'Generate Quiz'}

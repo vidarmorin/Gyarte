@@ -14,8 +14,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [route, setRoute] = useState('home')
   const [settings, setSettings] = useState({
-    skipLink: true,
-    focusOutline: true,
+    skipLink: false,
+    focusOutline: false,
     highContrast: false,
   })
 
