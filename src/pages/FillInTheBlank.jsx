@@ -124,8 +124,8 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
 
     try {
       const client = new OpenAI({
-        apiKey: 'ollama',
-        baseURL: 'http://10.22.1.100:11434/v1',
+        apiKey: 'sk-JKVPhL8DGwfdzxMstj1IJg',
+        baseURL: 'https://llm.aiqu.ai/',
         dangerouslyAllowBrowser: true,
       })
       // build prompt; special-case Aurebesh for extra clarity
@@ -136,7 +136,7 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
       promptMessage += `If you cannot write a valid word in that script, respond with the single word IMPOSSIBLE exactly. Only output the word (or IMPOSSIBLE) and nothing else.`;
 
       const response = await client.chat.completions.create({
-        model: 'gemma3:12b',
+        model: 'gpt-oss-120b',
         messages: [
           {
             role: 'user',
@@ -180,13 +180,13 @@ export default function FillInTheBlank({ onClose, onNavigate }) {
     setAiFeedback('')
     try {
       const client = new OpenAI({
-        apiKey: 'ollama',
-        baseURL: 'http://10.22.1.100:11434/v1',
+        apiKey: 'sk-JKVPhL8DGwfdzxMstj1IJg',
+        baseURL: 'https://llm.aiqu.ai/',
         dangerouslyAllowBrowser: true,
       })
 try {
   const response = await client.chat.completions.create({
-    model: 'gemma3:12b',
+    model: 'gpt-oss-120b',
     messages: [
       {
         role: 'user',

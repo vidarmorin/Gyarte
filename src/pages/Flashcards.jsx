@@ -211,13 +211,13 @@ export default function Flashcards({ onClose, onNavigate }) {
     setShowingPrimary(true)
   }
 
-  const callOllamaAI = async () => {
+  const callAI = async () => {
     setAiLoading(true)
     setAiResponse('')
     try {
       const client = new OpenAI({
-        apiKey: 'ollama',
-        baseURL: 'http://10.22.1.100:11434/v1',
+        apiKey: 'sk-JKVPhL8DGwfdzxMstj1IJg',
+        baseURL: 'https://llm.aiqu.ai/',
         dangerouslyAllowBrowser: true,
       })
 
@@ -263,8 +263,8 @@ export default function Flashcards({ onClose, onNavigate }) {
       const word = randomCard.back // Use the back field - the word
 
       const client = new OpenAI({
-        apiKey: 'ollama',
-        baseURL: 'http://10.22.1.100:11434/v1',
+        apiKey: 'sk-JKVPhL8DGwfdzxMstj1IJg',
+        baseURL: 'https://llm.aiqu.ai/',
         dangerouslyAllowBrowser: true,
       })
 
