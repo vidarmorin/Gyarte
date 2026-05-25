@@ -120,7 +120,7 @@ Respond ONLY in this JSON format:
     }
 
     const response = await client.chat.completions.create({
-      model: 'gemma3:12b',
+      model: 'gpt-oss-120b',
       messages: [
         { role: 'system', content: systemPrompt },
         ...history,
@@ -222,7 +222,7 @@ Respond ONLY in this JSON format:
       })
 
       const translationResponse = await client.chat.completions.create({
-        model: 'gemma3:12b',
+        model: 'gpt-oss-120b',
         messages: [
           {
             role: 'system',

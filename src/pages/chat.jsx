@@ -350,7 +350,7 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
           />
           
           <button id="generate-quiz-button" onClick={generateQuiz} disabled={quizLoading || !selectedLanguage} style={{ width: '200px', padding: 10, backgroundColor: '#2b6cff', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, fontWeight: 500, opacity: quizLoading || !selectedLanguage ? 0.5 : 1 }}>
-            {quizLoading ? 'Generating Quiz…' : 'Generate Quiz'}
+            {quizLoading ? 'Generating Cards…' : 'Generate Cards'}
           </button>
         </div>
 
@@ -448,7 +448,7 @@ Create the NEW flashcard(s) now. Remember: EXCLUDE ALL EXISTING WORDS and output
           </div>
         )}
 
-        {!cards.length && !generatedCards.length && (
+        {!cards.length && !generatedCards.length && !selectedLanguage && (
           <div style={{ textAlign: 'center', marginTop: 20 }}>
             <p>No flashcards available. Please fetch cards first.</p>
           </div>
