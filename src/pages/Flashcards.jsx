@@ -269,7 +269,7 @@ export default function Flashcards({ onClose, onNavigate }) {
       })
 
       const response = await client.chat.completions.create({
-        model: 'gemma3:12b',
+        model: 'gpt-oss-120b',
         messages: [
           {
             role: 'user',
@@ -287,13 +287,8 @@ export default function Flashcards({ onClose, onNavigate }) {
 
 CRITICAL RULE FOR INCORRECT OPTIONS:
 - The incorrect options MUST keep the ENTIRE sentence identical to the correct sentence.
-- The ONLY allowed difference is ONE small grammatical error (wrong article, wrong pronoun, wrong preposition, or wrong verb conjugation).
-- You are NOT allowed to change ANY nouns, verbs, adjectives, or objects.
-- You are NOT allowed to introduce ANY new vocabulary.
-- You are NOT allowed to replace or modify ANY word except the one containing the intentional grammatical error.
-- You are NOT allowed to change the meaning of the sentence.
-- You are NOT allowed to change "${word}" or any other word in the sentence except for the single grammatical error.
-- You are NOT allowed to change words like "voyage", "Italie", etc. EVER.
+- The ONLY allowed difference is using a different word in place of "${word}".
+
 
 4. Provide an ENGLISH translation of the correct full ${selectedLanguage} sentence.
 
